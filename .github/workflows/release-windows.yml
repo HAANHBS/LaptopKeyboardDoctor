@@ -40,20 +40,14 @@ jobs:
           $hash = (Get-FileHash -LiteralPath $files[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           Write-Host "RELEASE EXE SHA256: $hash"
 
-      - name: Create or update GitHub Release
+      - name: Create GitHub Release
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $asset = 'dist/LaptopKeyboardDoctor.exe'
-          cmd.exe /d /c "gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY >nul 2>nul"
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $env:RELEASE_TAG $asset --clobber --repo $env:GITHUB_REPOSITORY
-          }
-          else {
-            gh release create $env:RELEASE_TAG $asset `
-              --repo $env:GITHUB_REPOSITORY `
-              --target $env:GITHUB_SHA `
-              --title "Laptop Keyboard Doctor $env:RELEASE_TAG" `
-              --notes "Bản portable Windows: một file EXE duy nhất để chép USB. Nguồn mở MIT — MÁY TÍNH HÀ ANH, xã Như Thanh, tỉnh Thanh Hoá."
-          }
+          gh release create $env:RELEASE_TAG $asset `
+            --repo $env:GITHUB_REPOSITORY `
+            --target $env:GITHUB_SHA `
+            --title "Laptop Keyboard Doctor $env:RELEASE_TAG" `
+            --notes "Bản portable Windows: một file EXE duy nhất để chép USB. Nguồn mở MIT — MÁY TÍNH HÀ ANH, xã Như Thanh, tỉnh Thanh Hoá."
