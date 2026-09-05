@@ -246,6 +246,20 @@ def main() -> int:
     ]:
         require(workflow, token, "build-windows.yml")
 
+    release_version = (ROOT / ".release" / "version").read_text(encoding="utf-8").strip()
+    if not re.fullmatch(r"v\d+\.\d+\.\d+", release_version):
+        fail(f"invalid .release/version: {release_version!r}")
+    release_workflow = (ROOT / ".github" / "workflows" / "release-windows.yml").read_text(encoding="utf-8")
+    for token in [
+        ".release/version",
+        "windows-latest",
+        "Build.ps1",
+        "exactly one LaptopKeyboardDoctor.exe",
+        "gh release create",
+        "--target $env:GITHUB_SHA",
+    ]:
+        require(release_workflow, token, "release-windows.yml")
+
     run_cmd = (ROOT / "RUN_LaptopKeyboardDoctor.cmd").read_text(encoding="utf-8")
     require(run_cmd, "Build.ps1", "RUN_LaptopKeyboardDoctor.cmd")
 
@@ -263,6 +277,7 @@ def main() -> int:
     print("OPEN-SOURCE/AUTHOR CONTRACT: PASS")
     print("ONE-FILE USB CONTRACT: PASS")
     print("GITHUB WINDOWS WORKFLOW: PASS")
+    print("GITHUB RELEASE WORKFLOW: PASS")
     print("WINDOWS POWERSHELL 5.1 ENCODING: PASS")
     print("TOUCHPAD/POINTER CONTRACTS: PASS")
     print("HUMAN TIMING MODEL CONTRACTS: PASS")

@@ -1,0 +1,58 @@
+name: Publish Windows release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .release/version
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Verify source package
+        run: python tests\verify_package.py
+
+      - name: Build and run detector self-tests
+        shell: cmd
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File Build.ps1
+
+      - name: Validate release version and one-file package
+        shell: powershell
+        run: |
+          $tag = (Get-Content -LiteralPath .release/version -Raw).Trim()
+          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
+            throw "Invalid release tag: $tag"
+          }
+          $files = @(Get-ChildItem -LiteralPath dist -File)
+          if ($files.Count -ne 1 -or $files[0].Name -ne 'LaptopKeyboardDoctor.exe') {
+            throw 'Release must contain exactly one LaptopKeyboardDoctor.exe'
+          }
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $hash = (Get-FileHash -LiteralPath $files[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "RELEASE EXE SHA256: $hash"
+
+      - name: Create or update GitHub Release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $asset = 'dist/LaptopKeyboardDoctor.exe'
+          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:RELEASE_TAG $asset --clobber --repo $env:GITHUB_REPOSITORY
+          }
+          else {
+            gh release create $env:RELEASE_TAG $asset `
+              --repo $env:GITHUB_REPOSITORY `
+              --target $env:GITHUB_SHA `
+              --title "Laptop Keyboard Doctor $env:RELEASE_TAG" `
+              --notes "Bản portable Windows: một file EXE duy nhất để chép USB. Nguồn mở MIT — MÁY TÍNH HÀ ANH, xã Như Thanh, tỉnh Thanh Hoá."
+          }
