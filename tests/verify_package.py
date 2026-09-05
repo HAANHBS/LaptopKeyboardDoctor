@@ -255,8 +255,10 @@ def main() -> int:
         "windows-latest",
         "Build.ps1",
         "exactly one LaptopKeyboardDoctor.exe",
-        "gh release create",
-        "--target $env:GITHUB_SHA",
+        "Invoke-RestMethod",
+        "target_commitish = $env:GITHUB_SHA",
+        "application/octet-stream",
+        "RELEASE: PASS",
     ]:
         require(release_workflow, token, "release-windows.yml")
 
