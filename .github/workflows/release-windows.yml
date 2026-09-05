@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .release/version
+      - .github/workflows/release-windows.yml
   workflow_dispatch:
 
 permissions:
@@ -45,7 +46,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $asset = 'dist/LaptopKeyboardDoctor.exe'
-          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY *> $null
+          cmd.exe /d /c "gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY >nul 2>nul"
           if ($LASTEXITCODE -eq 0) {
             gh release upload $env:RELEASE_TAG $asset --clobber --repo $env:GITHUB_REPOSITORY
           }
