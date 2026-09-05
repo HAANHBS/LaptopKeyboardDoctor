@@ -1,0 +1,7 @@
+dist/
+obj/
+*.user
+*.suo
+tests/__pycache__/
+*.pyc
+*.zip

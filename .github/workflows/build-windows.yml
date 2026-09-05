@@ -1,0 +1,52 @@
+name: Build Windows portable EXE
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Verify source package
+        run: python tests\verify_package.py
+
+      - name: Build and run detector self-tests
+        shell: cmd
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File Build.ps1
+
+      - name: Enforce one-file USB package
+        shell: powershell
+        run: |
+          $files = @(Get-ChildItem -LiteralPath dist -File)
+          if ($files.Count -ne 1 -or $files[0].Name -ne 'LaptopKeyboardDoctor.exe') {
+            throw "dist must contain exactly one LaptopKeyboardDoctor.exe"
+          }
+          Get-FileHash -LiteralPath $files[0].FullName -Algorithm SHA256
+
+      - name: Upload portable EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LaptopKeyboardDoctor-Windows-Portable
+          path: dist/LaptopKeyboardDoctor.exe
+          if-no-files-found: error
+
+      - name: Publish tagged GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME dist/LaptopKeyboardDoctor.exe `
+            --title "Laptop Keyboard Doctor $env:GITHUB_REF_NAME" `
+            --generate-notes
