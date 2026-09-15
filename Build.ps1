@@ -62,30 +62,35 @@ namespace LaptopKeyboardDoctor {
 
     $bitmap = New-Object System.Drawing.Bitmap -ArgumentList 64, 64
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-    $background = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(31, 111, 189))
-    $keyboard = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)
-    $keyBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(220, 234, 247))
-    $accent = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(245, 185, 66))
-    $checkPen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(22, 59, 104)), 4
+    $background = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(17, 80, 145))
+    $panel = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(245, 249, 255))
+    $keyboard = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 255, 255))
+    $keyBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(212, 227, 246))
+    $alert = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(239, 154, 33))
+    $alertText = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(255, 255, 255)), 3
+    $shadow = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(22, 42, 88)), 2
     $handle = [IntPtr]::Zero
     $icon = $null
     $stream = $null
 
     try {
         $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        $graphics.FillRectangle($background, 0, 0, 64, 64)
-        $graphics.FillRectangle($keyboard, 8, 12, 48, 32)
-        for ($row = 0; $row -lt 3; $row++) {
-            for ($column = 0; $column -lt 5; $column++) {
-                $graphics.FillRectangle($keyBrush, 12 + ($column * 8), 16 + ($row * 8), 6, 5)
+        $graphics.Clear([System.Drawing.Color]::FromArgb(17, 80, 145))
+
+        $graphics.FillEllipse($panel, 6, 6, 52, 52)
+        $graphics.DrawEllipse($shadow, 7, 7, 50, 50)
+        $graphics.FillRectangle($keyboard, 16, 20, 32, 18)
+
+        for ($row = 0; $row -lt 2; $row++) {
+            for ($column = 0; $column -lt 3; $column++) {
+                $graphics.FillRectangle($keyBrush, 19 + ($column * 8), 23 + ($row * 6), 6, 4)
             }
         }
-        $graphics.FillEllipse($accent, 39, 35, 22, 22)
-        $graphics.DrawLines($checkPen, @(
-            (New-Object System.Drawing.Point -ArgumentList 44, 46),
-            (New-Object System.Drawing.Point -ArgumentList 49, 51),
-            (New-Object System.Drawing.Point -ArgumentList 57, 41)
-        ))
+
+        $graphics.FillEllipse($alert, 39, 12, 14, 14)
+        $graphics.DrawLine($alertText, 45, 16, 45, 21)
+        $graphics.DrawLine($alertText, 45, 23, 45, 23)
+
         $handle = $bitmap.GetHicon()
         $icon = [System.Drawing.Icon]::FromHandle($handle)
         $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Create)
@@ -95,10 +100,12 @@ namespace LaptopKeyboardDoctor {
         if ($stream) { $stream.Dispose() }
         if ($icon) { $icon.Dispose() }
         if ($handle -ne [IntPtr]::Zero) { [LaptopKeyboardDoctor.NativeIcon]::DestroyIcon($handle) | Out-Null }
-        $checkPen.Dispose()
-        $accent.Dispose()
+        $shadow.Dispose()
+        $alertText.Dispose()
+        $alert.Dispose()
         $keyBrush.Dispose()
         $keyboard.Dispose()
+        $panel.Dispose()
         $background.Dispose()
         $graphics.Dispose()
         $bitmap.Dispose()

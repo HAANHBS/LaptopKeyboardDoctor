@@ -20,6 +20,7 @@ namespace LaptopKeyboardDoctor
         private readonly ButtonState _middle = new ButtonState { Name = "Touchpad Middle", VirtualKey = 0x04 };
         private readonly Dictionary<string, long> _lastAlertMs = new Dictionary<string, long>();
         private PointerStateSnapshot _snapshot = new PointerStateSnapshot();
+        private long _lastPublishAtMs = -1;
 
         public int ChatterWindowMs = 45;
         public int StuckThresholdMs = 2500;
@@ -36,6 +37,7 @@ namespace LaptopKeyboardDoctor
             _right.IsDown = false; _right.LastUpMs = -1; _right.StuckAlerted = false;
             _middle.IsDown = false; _middle.LastUpMs = -1; _middle.StuckAlerted = false;
             _lastAlertMs.Clear();
+            _lastPublishAtMs = -1;
             _snapshot = new PointerStateSnapshot();
             Publish();
         }
@@ -61,7 +63,12 @@ namespace LaptopKeyboardDoctor
             _snapshot.LeftDown = _left.IsDown;
             _snapshot.RightDown = _right.IsDown;
             _snapshot.MiddleDown = _middle.IsDown;
-            Publish();
+
+            if (_lastPublishAtMs < 0 || evidence.MonotonicMs - _lastPublishAtMs >= 20)
+            {
+                _lastPublishAtMs = evidence.MonotonicMs;
+                Publish();
+            }
         }
 
         private void ApplyButton(KeyEvidence evidence, ButtonState state, ushort flags, ushort downFlag, ushort upFlag)

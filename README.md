@@ -1,4 +1,4 @@
-# Laptop Keyboard Doctor 2026
+# Laptop Keyboard Doctor - Kiểm tra bàn phím LAPTOP
 
 Phiên bản: **0.3.0** — bản nguồn mở MIT, có icon nhúng, nhận diện tác giả và build portable **một tệp EXE duy nhất** để chép vào USB.
 

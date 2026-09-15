@@ -143,7 +143,9 @@ namespace LaptopKeyboardDoctor
             {
                 K(0x1B,"Esc",1.2f), K(0x70,"F1",1), K(0x71,"F2",1), K(0x72,"F3",1), K(0x73,"F4",1),
                 K(0x74,"F5",1), K(0x75,"F6",1), K(0x76,"F7",1), K(0x77,"F8",1), K(0x78,"F9",1),
-                K(0x79,"F10",1), K(0x7A,"F11",1), K(0x7B,"F12",1), K(0x2C,"PrtSc",1.2f), K(0x2E,"Del",1.1f)
+                K(0x79,"F10",1), K(0x7A,"F11",1), K(0x7B,"F12",1), K(0x21,"PgUp",1.04f),
+                K(0x22,"PgDn",1.04f), K(0x24,"Home",1.04f), K(0x23,"End",1.04f), K(0x2D,"Ins",0.9f),
+                K(0x2C,"PrtSc",1.08f), K(0x2E,"Del",1.08f)
             });
             _rows.Add(new List<KeyVisual>
             {

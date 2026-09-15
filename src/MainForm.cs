@@ -38,6 +38,7 @@ namespace LaptopKeyboardDoctor
         private long _hookCount;
         private long _hidCount;
         private long _rawMouseCount;
+        private long _lastPointerUiRefreshMs = -1;
 
         private ToolStripButton _captureButton;
         private ToolStripLabel _captureStatus;
@@ -46,6 +47,8 @@ namespace LaptopKeyboardDoctor
         private TabControl _tabs;
         private TabPage _keyboardPage;
         private TabPage _guidedPage;
+        private TabPage _eventsPage;
+        private TabPage _alertsPage;
         private KeyboardMapControl _keyboardMap;
         private TouchpadMapControl _touchpadMap;
         private ComboBox _pointerDeviceCombo;
@@ -73,7 +76,7 @@ namespace LaptopKeyboardDoctor
 
         public MainForm()
         {
-            Text = "Laptop Keyboard Doctor 2026";
+            Text = "Laptop Keyboard Doctor - Kiem tra Ban phim Laptop";
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(980, 680);
             Size = new Size(1280, 820);
@@ -132,7 +135,7 @@ namespace LaptopKeyboardDoctor
 
             _captureButton = new ToolStripButton("Tạm dừng") { DisplayStyle = ToolStripItemDisplayStyle.Text };
             _captureStatus = new ToolStripLabel("● Đang bắt phím") { ForeColor = Color.FromArgb(31, 139, 78) };
-            _deviceCombo = new ToolStripComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 310 };
+            _deviceCombo = new ToolStripComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 420 };
             _deviceCombo.Items.Add(new DeviceChoice { Id = string.Empty, Label = "Tất cả thiết bị bàn phím" });
             _deviceCombo.SelectedIndex = 0;
             ToolStripButton resetButton = new ToolStripButton("⟳ RESET / ĐO LẠI") { Font = new Font("Segoe UI Semibold", 9F), ForeColor = Color.FromArgb(180, 55, 35) };
@@ -158,11 +161,14 @@ namespace LaptopKeyboardDoctor
             _tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(12, 5) };
             _keyboardPage = BuildOverviewTab();
             _guidedPage = BuildGuidedTab();
+            _eventsPage = BuildEventsTab();
+            _alertsPage = BuildAlertsTab();
             _tabs.TabPages.Add(_keyboardPage);
             _tabs.TabPages.Add(BuildTouchpadTab());
-            _tabs.TabPages.Add(BuildEventsTab());
-            _tabs.TabPages.Add(BuildAlertsTab());
+            _tabs.TabPages.Add(_eventsPage);
+            _tabs.TabPages.Add(_alertsPage);
             _tabs.TabPages.Add(_guidedPage);
+            _tabs.Selecting += OnTabSelecting;
             _tabs.TabPages.Add(BuildSettingsTab());
             _tabs.TabPages.Add(BuildAboutTab());
             root.Controls.Add(_tabs, 0, 1);
@@ -315,22 +321,20 @@ namespace LaptopKeyboardDoctor
         {
             TabPage page = new TabPage("Luồng sự kiện") { Padding = new Padding(8) };
             _eventsGrid = CreateGrid();
-            _eventsGrid.Columns.Add("Time", "Giờ");
             _eventsGrid.Columns.Add("Source", "Nguồn");
-            _eventsGrid.Columns.Add("Device", "Thiết bị");
             _eventsGrid.Columns.Add("Key", "Phím");
             _eventsGrid.Columns.Add("Vk", "VK");
             _eventsGrid.Columns.Add("Scan", "Scan");
             _eventsGrid.Columns.Add("Action", "Trạng thái");
             _eventsGrid.Columns.Add("Flags", "Chi tiết");
-            _eventsGrid.Columns[0].Width = 100;
-            _eventsGrid.Columns[1].Width = 110;
-            _eventsGrid.Columns[2].Width = 230;
-            _eventsGrid.Columns[3].Width = 120;
-            _eventsGrid.Columns[4].Width = 60;
-            _eventsGrid.Columns[5].Width = 70;
-            _eventsGrid.Columns[6].Width = 85;
-            _eventsGrid.Columns[7].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            _eventsGrid.Columns.Add("Time", "Giờ");
+            _eventsGrid.Columns[0].Width = 110;
+            _eventsGrid.Columns[1].Width = 120;
+            _eventsGrid.Columns[2].Width = 60;
+            _eventsGrid.Columns[3].Width = 70;
+            _eventsGrid.Columns[4].Width = 90;
+            _eventsGrid.Columns[5].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            _eventsGrid.Columns[6].Width = 100;
             page.Controls.Add(_eventsGrid);
             return page;
         }
@@ -468,7 +472,7 @@ namespace LaptopKeyboardDoctor
 
             Label title = new Label
             {
-                Text = "Laptop Keyboard Doctor 2026",
+                Text = "Laptop Keyboard Doctor - Kiem tra Ban phim Laptop",
                 AutoSize = true,
                 Font = new Font("Segoe UI Semibold", 22F),
                 ForeColor = Color.FromArgb(31, 69, 111),
@@ -707,8 +711,12 @@ namespace LaptopKeyboardDoctor
                 if (PointerEvidenceSelected(evidence))
                 {
                     _pointerAnalyzer.Process(evidence);
-                    _touchpadMap.Apply(evidence, _pointerAnalyzer.Snapshot);
-                    _pointerSourceLabel.Text = "Nguồn cuối: " + FriendlyDeviceName(evidence.DeviceId);
+                    if (_lastPointerUiRefreshMs < 0 || evidence.MonotonicMs - _lastPointerUiRefreshMs >= 20)
+                    {
+                        _touchpadMap.Apply(evidence, _pointerAnalyzer.Snapshot);
+                        _pointerSourceLabel.Text = "Nguồn cuối: " + FriendlyDeviceName(evidence.DeviceId);
+                        _lastPointerUiRefreshMs = evidence.MonotonicMs;
+                    }
                 }
             }
             else if (evidence.Source == InputSourceKind.DeviceChange)
@@ -792,14 +800,13 @@ namespace LaptopKeyboardDoctor
         private void AddEventRow(KeyEvidence evidence)
         {
             int index = _eventsGrid.Rows.Add(
-                evidence.TimeUtc.ToLocalTime().ToString("HH:mm:ss.fff"),
                 SourceText(evidence.Source),
-                Shorten(evidence.DeviceId, 42),
                 !string.IsNullOrEmpty(evidence.ControlName) ? evidence.ControlName : evidence.VirtualKey == 0 ? "—" : KeyNames.Get(evidence.VirtualKey),
                 evidence.VirtualKey == 0 ? "—" : "0x" + evidence.VirtualKey.ToString("X2"),
                 evidence.ScanCode == 0 ? "—" : "0x" + evidence.ScanCode.ToString("X3"),
                 evidence.IsDown ? "DOWN" : evidence.IsUp ? "UP" : "INFO",
-                (evidence.Injected ? "INJECTED; " : string.Empty) + evidence.Detail);
+                (evidence.Injected ? "INJECTED; " : string.Empty) + evidence.Detail + (string.IsNullOrEmpty(evidence.DeviceId) ? string.Empty : "; device=" + Shorten(evidence.DeviceId, 42)),
+                evidence.TimeUtc.ToLocalTime().ToString("HH:mm:ss.fff"));
             _eventsGrid.Rows[index].DefaultCellStyle.BackColor = evidence.Source == InputSourceKind.RawKeyboard ? Color.FromArgb(240, 248, 255) :
                 evidence.Source == InputSourceKind.RawMouse ? Color.FromArgb(246, 241, 255) : Color.White;
             if (_eventsGrid.Rows.Count > 2000) _eventsGrid.Rows.RemoveAt(0);
@@ -952,6 +959,7 @@ namespace LaptopKeyboardDoctor
             _hookCount = 0;
             _hidCount = 0;
             _rawMouseCount = 0;
+            _lastPointerUiRefreshMs = -1;
             _matrixIndex = -1;
             foreach (MatrixPairStep step in _matrixSteps) { step.Passed = false; step.Failed = false; }
             _modeLabel.Text = "Bình thường";
@@ -1041,7 +1049,7 @@ namespace LaptopKeyboardDoctor
 
             using (StreamWriter writer = new StreamWriter(reportPath, false, utf8))
             {
-                writer.WriteLine("LAPTOP KEYBOARD DOCTOR 2026 - BÁO CÁO CHẨN ĐOÁN");
+                writer.WriteLine("LAPTOP KEYBOARD DOCTOR - KIEM TRA BAN PHIM LAPTOP - BÁO CÁO CHẨN ĐOÁN");
                 writer.WriteLine("Phiên bản: " + Application.ProductVersion);
                 writer.WriteLine("Tác giả / đơn vị phát hành: MÁY TÍNH HÀ ANH");
                 writer.WriteLine("Địa chỉ: xã Như Thanh, tỉnh Thanh Hoá");
@@ -1114,11 +1122,22 @@ namespace LaptopKeyboardDoctor
                 "Phạm vi đo", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
+        private void OnTabSelecting(object sender, TabControlCancelEventArgs e)
+        {
+            if (_tabs == null || _tabs.SelectedTab == null) return;
+            if (_tabs.SelectedTab == _eventsPage && e.TabPage != _eventsPage)
+            {
+                e.Cancel = true;
+            }
+        }
+
         protected override bool ProcessCmdKey(ref Message message, Keys keyData)
         {
             Keys keyCode = keyData & Keys.KeyCode;
             bool arrow = keyCode == Keys.Left || keyCode == Keys.Right || keyCode == Keys.Up || keyCode == Keys.Down;
-            if (_capturing && arrow && _tabs != null && (_tabs.SelectedTab == _keyboardPage || _tabs.SelectedTab == _guidedPage))
+            bool pageNav = keyCode == Keys.Home || keyCode == Keys.End || keyCode == Keys.PageUp || keyCode == Keys.PageDown ||
+                keyCode == Keys.Prior || keyCode == Keys.Next;
+            if (_capturing && (arrow || pageNav) && _tabs != null && (_tabs.SelectedTab == _keyboardPage || _tabs.SelectedTab == _guidedPage || _tabs.SelectedTab == _alertsPage || _tabs.SelectedTab == _eventsPage))
             {
                 // Raw Input still records the key; consuming the UI command prevents TabControl page navigation.
                 return true;
