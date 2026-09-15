@@ -8,6 +8,14 @@ Phiên bản: **0.3.0** — bản nguồn mở MIT, có icon nhúng, nhận di�
 
 Ứng dụng chẩn đoán bàn phím laptop chạy native trên Windows, tập trung vào các lỗi khó thấy bằng trang test trình duyệt: tự chạm, mất KeyUp, chatter/double key, lặp bất thường, phím ma do chạm ma trận và tín hiệu phím media/Fn đời mới.
 
+## Cập nhật mới nhất
+
+- Khắc phục thiếu hiển thị phím `Home`, `End`, `Page Up`, `Page Down`, `Insert` trên bản đồ bàn phím.
+- Khoá tab `Luồng sự kiện` và các tab kiểm tra để tránh nhảy tab khi đang theo dõi sự kiện.
+- Tối ưu UI chuột/touchpad để giảm lag trong khi theo dõi Raw Mouse.
+- Cập nhật tên phần mềm và icon dễ nhìn hơn, giữ nguyên triết lý chẩn đoán lỗi là ưu tiên số một.
+- Xem thêm chi tiết trong [CHANGELOG.md](CHANGELOG.md).
+
 ## Chạy bản portable từ USB
 
 1. Tải `LaptopKeyboardDoctor.exe` trong mục [Releases](https://github.com/HAANHBS/LaptopKeyboardDoctor/releases).
